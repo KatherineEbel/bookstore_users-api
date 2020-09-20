@@ -12,10 +12,9 @@ import (
 )
 
 func Get(c *gin.Context) {
-	id, err := strconv.ParseInt(c.Param("userId"), 10, 64)
+	id, err := parseId(c)
 	if err != nil {
-		e := errors.NewBadRequestError("bad parameter, expected a number")
-		c.JSON(e.Code, e)
+		c.JSON(err.Code, err)
 		return
 	}
 	u, rErr := services.Get(id)
@@ -41,6 +40,45 @@ func Insert(c *gin.Context) {
 	c.JSON(http.StatusCreated, result)
 }
 
-func Search(c *gin.Context) {
-	c.String(http.StatusNotImplemented, "implement me!")
+func parseId(c *gin.Context) (int64, *errors.RestError) {
+	userId, err := strconv.ParseInt(c.Param("userId"), 10, 64)
+	if err != nil {
+		return 0, errors.NewBadRequestError("invalid request")
+	}
+	return userId, nil
+}
+
+func Update(c *gin.Context) {
+	id, err := parseId(c)
+	if err != nil {
+		c.JSON(err.Code, err)
+		return
+	}
+	var u users.User
+	if err := c.ShouldBindJSON(&u); err != nil {
+		rErr := errors.NewBadRequestError("invalid JSON")
+		c.JSON(rErr.Code, rErr)
+		return
+	}
+	u.Id = id
+	isPartial := c.Request.Method == http.MethodPatch
+	usr, updErr := services.Update(isPartial, &u)
+	if updErr != nil {
+		c.JSON(updErr.Code, err)
+		return
+	}
+	c.JSON(http.StatusOK, usr)
+}
+
+func Delete(c *gin.Context) {
+	id, err := parseId(c)
+	if err != nil {
+		c.JSON(err.Code, err)
+		return
+	}
+	if err := services.Delete(id); err != nil {
+		c.JSON(err.Code, err)
+		return
+	}
+	c.JSON(http.StatusOK, map[string]bool{"success": true})
 }

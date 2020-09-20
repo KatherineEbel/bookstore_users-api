@@ -1,23 +1,18 @@
 package users
 
 import (
-	"strings"
-
-	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
+	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 )
 
 type User struct {
-	Id        int64  `json:"id"`
-	FirstName string `json:"firstName"`
-	LastName  string `json:"lastName"`
-	Email     string `json:"email"`
-	createdAt string
+	Id          int64  `json:"id"`
+	FirstName   string `json:"firstName"`
+	LastName    string `json:"lastName"`
+	Email       string `json:"email"`
+	dateCreated string
+	updatedAt   string
 }
 
-func (u *User) Validate() *errors.RestError {
-	u.Email = strings.TrimSpace(strings.ToLower(u.Email))
-	if u.Email == "" {
-		return errors.NewBadRequestError("invalid email address")
-	}
-	return nil
+func (u *User) Joined() string {
+	return dates.GetDateFromString(u.dateCreated)
 }
