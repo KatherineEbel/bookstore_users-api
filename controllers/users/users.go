@@ -21,6 +21,7 @@ func Get(c *gin.Context) {
 	u, rErr := services.Get(id)
 	if rErr != nil {
 		c.JSON(rErr.Code, rErr)
+		return
 	}
 	c.JSON(http.StatusOK, u)
 }

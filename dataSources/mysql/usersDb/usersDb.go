@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	UsersDB   *sql.DB
+	Client    *sql.DB
 	mySQLPass = os.Getenv("MYSQL_PASS")
 	dbName    = os.Getenv("DB_NAME")
 	mySQLUser = os.Getenv("MYSQL_USER")
@@ -20,10 +20,10 @@ var (
 func init() {
 	var err error
 	url := fmt.Sprintf("%s:%s@tcp(%s)/%s?charset=utf8", mySQLUser, mySQLPass, host, dbName)
-	UsersDB, err = sql.Open("mysql", url)
+	Client, err = sql.Open("mysql", url)
 	if err != nil {
 		log.Fatalln(err)
 	}
-	UsersDB.SetMaxOpenConns(20)
+	Client.SetMaxOpenConns(20)
 	fmt.Println("mysql connected...")
 }

@@ -1,22 +1,24 @@
 package users
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 
 	"github.com/KatherineEbel/bookstore_users-api/dataSources/mysql/usersDb"
-	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
+	"github.com/KatherineEbel/bookstore_users-api/utils/mysql"
 )
 
-var (
-	db = make(map[int64]*User)
+const (
+	queryInsertUser = "INSERT INTO users(firstName, lastName, email) VALUES(?,?,?)"
+	queryGetUser    = "SELECT id, firstName, lastname, email FROM users WHERE id=?"
 )
 
 // Only place that should have access to the database is the DAO
 
 func init() {
-	if err := usersDb.UsersDB.Ping(); err != nil {
+	if err := usersDb.Client.Ping(); err != nil {
 		log.Fatalln(err)
 	} else {
 		fmt.Println("Ping Success!!")
@@ -24,27 +26,41 @@ func init() {
 }
 
 func (u *User) Get() *errors.RestError {
-	r := db[u.Id]
-	if r == nil {
-		return errors.NewNotFoundError("user not found")
+	stmt, err := prepareStatement(queryGetUser)
+	if err != nil {
+		return err
 	}
-	u.FirstName = r.FirstName
-	u.LastName = r.LastName
-	u.Email = r.Email
-	u.CreatedAt = r.CreatedAt
+	defer stmt.Close()
+	row := stmt.QueryRow(u.Id)
+	if err := row.Scan(&u.Id, &u.FirstName, &u.LastName, &u.Email); err != nil {
+		return mysql.ParseError(err)
+	}
 	return nil
 }
 
 func (u *User) Save() *errors.RestError {
-	r := db[u.Id]
-	if r != nil {
-		if r.Email == u.Email {
-			return errors.NewBadRequestError("email in use")
-		}
-		return errors.NewBadRequestError("invalid request")
-
+	stmt, err := prepareStatement(queryInsertUser)
+	if err != nil {
+		return err
 	}
-	u.CreatedAt = dates.GetNowString()
-	db[u.Id] = u
+	defer stmt.Close()
+	result, execErr := stmt.Exec(u.FirstName, u.LastName, u.Email)
+	if execErr != nil {
+		return mysql.ParseError(execErr)
+	}
+	uId, sErr := result.LastInsertId()
+	if sErr != nil {
+		return errors.NewInternalServerError(fmt.Sprintf("error saving user %s", sErr.Error()))
+	}
+	u.Id = uId
 	return nil
+}
+
+func prepareStatement(query string) (*sql.Stmt, *errors.RestError) {
+	stmt, err := usersDb.Client.Prepare(query)
+	if err != nil {
+		fmt.Println(err)
+		return nil, errors.NewInternalServerError(err.Error())
+	}
+	return stmt, nil
 }
