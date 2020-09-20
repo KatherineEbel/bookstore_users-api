@@ -1,6 +1,7 @@
 package users
 
 import (
+	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
@@ -31,6 +32,7 @@ func (u *User) Save() *errors.RestError {
 		return errors.NewBadRequestError("invalid request")
 
 	}
+	u.CreatedAt = dates.GetNowString()
 	db[u.Id] = u
 	return nil
 }
