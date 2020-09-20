@@ -1,6 +1,10 @@
 package users
 
 import (
+	"fmt"
+	"log"
+
+	"github.com/KatherineEbel/bookstore_users-api/dataSources/mysql/usersDb"
 	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
@@ -10,6 +14,14 @@ var (
 )
 
 // Only place that should have access to the database is the DAO
+
+func init() {
+	if err := usersDb.UsersDB.Ping(); err != nil {
+		log.Fatalln(err)
+	} else {
+		fmt.Println("Ping Success!!")
+	}
+}
 
 func (u *User) Get() *errors.RestError {
 	r := db[u.Id]
