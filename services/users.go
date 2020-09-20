@@ -2,10 +2,13 @@ package services
 
 import (
 	"github.com/KatherineEbel/bookstore_users-api/domain/users"
+	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
 func Insert(u *users.User) (*users.User, *errors.RestError) {
+	u.Status = users.StatusActive
+	u.DateCreated = dates.GetNowString(dates.APIDateLayout)
 	if err := u.Save(); err != nil {
 		return nil, err
 	}
@@ -58,4 +61,12 @@ func Delete(id int64) *errors.RestError {
 		return err
 	}
 	return nil
+}
+
+func FindByStatus(status string) ([]*users.User, *errors.RestError) {
+	results, err := users.FindByStatus(status)
+	if err != nil {
+		return nil, err
+	}
+	return results, nil
 }
