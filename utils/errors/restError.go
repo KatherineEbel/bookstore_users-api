@@ -13,6 +13,9 @@ func (e *RestError) Error() string {
 	return e.Message
 }
 
+func NewDatabaseError() *RestError {
+	return NewInternalServerError("database error")
+}
 func NewBadRequestError(msg string) *RestError {
 	return &RestError{
 		Message: msg,
