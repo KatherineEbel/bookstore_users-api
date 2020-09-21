@@ -19,6 +19,8 @@ type User struct {
 	dateUpdated string
 }
 
+type Users []User
+
 func (u *User) Joined() string {
 	return dates.GetDateFromString(u.DateCreated)
 }

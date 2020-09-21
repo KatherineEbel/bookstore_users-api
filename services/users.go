@@ -2,20 +2,40 @@ package services
 
 import (
 	"github.com/KatherineEbel/bookstore_users-api/domain/users"
+	"github.com/KatherineEbel/bookstore_users-api/utils/crypt"
 	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
 	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
-func Insert(u *users.User) (*users.User, *errors.RestError) {
+type usersService struct{}
+
+var (
+	UsersService IUsersService = &usersService{}
+)
+
+type IUsersService interface {
+	Insert(*users.User) (*users.User, *errors.RestError)
+	Get(int64) (*users.User, *errors.RestError)
+	Update(bool, *users.User) (*users.User, *errors.RestError)
+	Delete(int64) *errors.RestError
+	FindByStatus(string) (users.Users, *errors.RestError)
+}
+
+func (s *usersService) Insert(u *users.User) (*users.User, *errors.RestError) {
 	u.Status = users.StatusActive
 	u.DateCreated = dates.GetNowString(dates.APIDateLayout)
+	hp, err := crypt.Encrypt(u.Password)
+	if err != nil {
+		return nil, errors.NewBadRequestError("Invalid password")
+	}
+	u.Password = hp
 	if err := u.Save(); err != nil {
 		return nil, err
 	}
 	return u, nil
 }
 
-func Get(id int64) (*users.User, *errors.RestError) {
+func (s *usersService) Get(id int64) (*users.User, *errors.RestError) {
 	u := users.User{Id: id}
 	if err := u.Get(); err != nil {
 		return nil, err
@@ -23,8 +43,8 @@ func Get(id int64) (*users.User, *errors.RestError) {
 	return &u, nil
 }
 
-func Update(partial bool, user *users.User) (*users.User, *errors.RestError) {
-	cur, err := Get(user.Id)
+func (s *usersService) Update(partial bool, user *users.User) (*users.User, *errors.RestError) {
+	cur, err := s.Get(user.Id)
 	if err != nil {
 		return nil, err
 	}
@@ -39,9 +59,6 @@ func Update(partial bool, user *users.User) (*users.User, *errors.RestError) {
 			cur.Email = user.Email
 		}
 	} else {
-		// if err := user.Validate(); err != nil {
-		// 	return nil, err
-		// }
 		cur.FirstName = user.FirstName
 		cur.LastName = user.LastName
 		cur.Email = user.Email
@@ -52,8 +69,8 @@ func Update(partial bool, user *users.User) (*users.User, *errors.RestError) {
 	return cur, nil
 }
 
-func Delete(id int64) *errors.RestError {
-	u, err := Get(id)
+func (s *usersService) Delete(id int64) *errors.RestError {
+	u, err := s.Get(id)
 	if err != nil {
 		return err
 	}
@@ -63,7 +80,7 @@ func Delete(id int64) *errors.RestError {
 	return nil
 }
 
-func FindByStatus(status string) ([]*users.User, *errors.RestError) {
+func (s *usersService) FindByStatus(status string) (users.Users, *errors.RestError) {
 	results, err := users.FindByStatus(status)
 	if err != nil {
 		return nil, err

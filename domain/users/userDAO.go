@@ -37,7 +37,7 @@ func (u *User) Get() *errors.RestError {
 	}
 	defer stmt.Close()
 	row := stmt.QueryRow(u.Id)
-	if err := row.Scan(&u.Id, &u.FirstName, &u.LastName, &u.Email, &u.DateCreated); err != nil {
+	if err := row.Scan(&u.Id, &u.FirstName, &u.LastName, &u.Email, &u.DateCreated, &u.Status); err != nil {
 		return mysql.ParseError(err)
 	}
 	return nil
@@ -91,7 +91,7 @@ func (u *User) Delete() *errors.RestError {
 	return nil
 }
 
-func FindByStatus(status string) ([]*User, *errors.RestError) {
+func FindByStatus(status string) ([]User, *errors.RestError) {
 	stmt, err := prepareStatement(findUserByStatusQuery)
 	if err != nil {
 		return nil, err
@@ -102,13 +102,13 @@ func FindByStatus(status string) ([]*User, *errors.RestError) {
 		return nil, mysql.ParseError(queryErr)
 	}
 	defer rows.Close()
-	res := make([]*User, 0)
+	res := make([]User, 0)
 	for rows.Next() {
 		var user User
 		if err := rows.Scan(&user.Id, &user.FirstName, &user.LastName, &user.Email, &user.DateCreated, &user.Status); err != nil {
 			return nil, mysql.ParseError(err)
 		}
-		res = append(res, &user)
+		res = append(res, user)
 	}
 	if len(res) == 0 {
 		return nil, errors.NewNotFoundError(fmt.Sprintf("no users matching status %s", status))
