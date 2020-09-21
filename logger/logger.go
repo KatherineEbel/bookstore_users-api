@@ -13,9 +13,10 @@ var (
 
 func init() {
 	config := zap.Config{
-		OutputPaths: []string{"stdout"},
-		Level:       zap.NewAtomicLevelAt(zap.InfoLevel),
-		Encoding:    "json",
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+		Level:            zap.NewAtomicLevelAt(zap.InfoLevel),
+		Encoding:         "console",
 		EncoderConfig: zapcore.EncoderConfig{
 			MessageKey:   "msg",
 			LevelKey:     "level",
