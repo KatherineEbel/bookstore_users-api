@@ -5,19 +5,22 @@ import (
 	"fmt"
 	"html"
 
+	"github.com/KatherineEbel/bookstore-utils-go/rest/errors"
+
 	"github.com/KatherineEbel/bookstore_users-api/dataSources/mysql/usersDb"
 	"github.com/KatherineEbel/bookstore_users-api/logger"
+	"github.com/KatherineEbel/bookstore_users-api/utils/crypt"
 	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
-	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 	"github.com/KatherineEbel/bookstore_users-api/utils/mysql"
 )
 
 const (
-	insertQuery           = "INSERT INTO users(firstName, lastName, email, dateCreated, status, password) VALUES(?,?,?,?,?,?)"
-	getQuery              = "SELECT id, firstName, lastname, email, dateCreated, status FROM users WHERE id=?"
-	updateQuery           = "UPDATE users SET firstName=?, lastName=?, email=?, dateUpdated=?, status=?, WHERE id=?"
-	deleteQuery           = "DELETE FROM users WHERE id=?"
-	findUserByStatusQuery = "SELECT id, firstName, lastName, email, dateCreated, status FROM users WHERE status=?"
+	insertQuery       = "INSERT INTO users(firstName, lastName, email, dateCreated, status, passwordHash) VALUES(?,?,?,?,?,?)"
+	getQuery          = "SELECT id, firstName, lastname, email, dateCreated, status FROM users WHERE id=?"
+	updateQuery       = "UPDATE users SET firstName=?, lastName=?, email=?, dateUpdated=?, status=?, WHERE id=?"
+	deleteQuery       = "DELETE FROM users WHERE id=?"
+	findByStatusQuery = "SELECT id, firstName, lastName, email, dateCreated, status FROM users WHERE status=?"
+	findByEmail       = "SELECT id, firstName, lastName, email, passwordHash, status, dateCreated FROM users WHERE email=?"
 )
 
 // Only place that should have access to the database is the DAO
@@ -51,7 +54,7 @@ func (u *User) Save() *errors.RestError {
 		return err
 	}
 	defer stmt.Close()
-	result, execErr := stmt.Exec(u.FirstName, u.LastName, u.Email, u.DateCreated, u.Status, u.Password)
+	result, execErr := stmt.Exec(u.FirstName, u.LastName, u.Email, u.DateCreated, u.Status, u.PasswordHash)
 	if execErr != nil {
 		logger.Error("Save execErr", execErr)
 		return mysql.ParseError(execErr)
@@ -94,7 +97,7 @@ func (u *User) Delete() *errors.RestError {
 }
 
 func FindByStatus(status string) ([]User, *errors.RestError) {
-	stmt, err := prepareStatement(findUserByStatusQuery)
+	stmt, err := prepareStatement(findByStatusQuery)
 	if err != nil {
 		return nil, err
 	}
@@ -118,6 +121,24 @@ func FindByStatus(status string) ([]User, *errors.RestError) {
 		return nil, errors.NewNotFoundError(fmt.Sprintf("no users matching status %s", status))
 	}
 	return res, nil
+}
+
+func FindByEmailAndPassword(e string, p string) (*User, *errors.RestError) {
+	stmt, err := prepareStatement(findByEmail)
+	if err != nil {
+		return nil, err
+	}
+	defer stmt.Close()
+	row := stmt.QueryRow(e)
+	u := &User{}
+	if err := row.Scan(&u.Id, &u.FirstName, &u.LastName, &u.Email, &u.PasswordHash, &u.Status, &u.DateCreated); err != nil {
+		logger.Error("GET Scan err", err)
+		return nil, mysql.ParseError(err)
+	}
+	if err := crypt.Validate(u.PasswordHash, p); err != nil {
+		return nil, errors.NewBadRequestError("incorrect password")
+	}
+	return u, nil
 }
 
 func prepareStatement(query string) (*sql.Stmt, *errors.RestError) {

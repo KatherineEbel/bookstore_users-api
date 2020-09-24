@@ -1,10 +1,9 @@
 package services
 
 import (
+	"github.com/KatherineEbel/bookstore-utils-go/rest/errors"
+
 	"github.com/KatherineEbel/bookstore_users-api/domain/users"
-	"github.com/KatherineEbel/bookstore_users-api/utils/crypt"
-	"github.com/KatherineEbel/bookstore_users-api/utils/dates"
-	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
 type usersService struct{}
@@ -14,25 +13,23 @@ var (
 )
 
 type IUsersService interface {
-	Insert(*users.User) (*users.User, *errors.RestError)
+	Insert(user *users.JoiningUser) (*users.User, *errors.RestError)
 	Get(int64) (*users.User, *errors.RestError)
 	Update(bool, *users.User) (*users.User, *errors.RestError)
 	Delete(int64) *errors.RestError
 	FindByStatus(string) (users.Users, *errors.RestError)
+	Login(users.LoginRequest) (*users.User, *errors.RestError)
 }
 
-func (s *usersService) Insert(u *users.User) (*users.User, *errors.RestError) {
-	u.Status = users.StatusActive
-	u.DateCreated = dates.GetNowString(dates.APIDateLayout)
-	hp, err := crypt.Encrypt(u.Password)
+func (s *usersService) Insert(u *users.JoiningUser) (*users.User, *errors.RestError) {
+	user, err := users.NewUser(u)
 	if err != nil {
-		return nil, errors.NewBadRequestError("Invalid password")
+		return nil, errors.NewInternalServerError(err.Error())
 	}
-	u.Password = hp
-	if err := u.Save(); err != nil {
+	if err := user.Save(); err != nil {
 		return nil, err
 	}
-	return u, nil
+	return user, nil
 }
 
 func (s *usersService) Get(id int64) (*users.User, *errors.RestError) {
@@ -86,4 +83,8 @@ func (s *usersService) FindByStatus(status string) (users.Users, *errors.RestErr
 		return nil, err
 	}
 	return results, nil
+}
+
+func (s *usersService) Login(r users.LoginRequest) (*users.User, *errors.RestError) {
+	return users.FindByEmailAndPassword(r.Email, r.Password)
 }

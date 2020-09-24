@@ -3,9 +3,8 @@ package mysql
 import (
 	"strings"
 
+	"github.com/KatherineEbel/bookstore-utils-go/rest/errors"
 	"github.com/go-sql-driver/mysql"
-
-	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
 const (

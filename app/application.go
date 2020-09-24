@@ -14,6 +14,6 @@ var (
 
 func StartApplication() {
 	mapUrls()
-	logger.Info("starting application on port 8080")
-	fmt.Println(router.Run(":8080"))
+	logger.Info("starting application on port 8081")
+	fmt.Println(router.Run(":8081"))
 }

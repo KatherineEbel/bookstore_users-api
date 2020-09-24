@@ -5,7 +5,7 @@ import (
 )
 
 func Encrypt(p string) (string, error) {
-	b, err := bcrypt.GenerateFromPassword([]byte(p), 10)
+	b, err := bcrypt.GenerateFromPassword([]byte(p), 0)
 	if err != nil {
 		return "", err
 	}

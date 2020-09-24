@@ -4,14 +4,20 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/KatherineEbel/bookstore-utils-go/rest/errors"
 	"github.com/gin-gonic/gin"
+
+	"github.com/KatherineEbel/oauth-go/oauth"
 
 	"github.com/KatherineEbel/bookstore_users-api/domain/users"
 	"github.com/KatherineEbel/bookstore_users-api/services"
-	"github.com/KatherineEbel/bookstore_users-api/utils/errors"
 )
 
 func Get(c *gin.Context) {
+	if err := oauth.Authenticate(c.Request); err != nil {
+		c.JSON(err.Code, err)
+		return
+	}
 	id, err := parseId(c)
 	if err != nil {
 		c.JSON(err.Code, err)
@@ -22,11 +28,15 @@ func Get(c *gin.Context) {
 		c.JSON(rErr.Code, rErr)
 		return
 	}
-	c.JSON(http.StatusOK, u.Marshal(c.GetHeader("X-Public") == "true"))
+	if oauth.GetUserId(c.Request) == u.Id {
+		c.JSON(http.StatusOK, u.Marshal(false))
+		return
+	}
+	c.JSON(http.StatusOK, u.Marshal(oauth.IsPublic(c.Request)))
 }
 
 func Insert(c *gin.Context) {
-	var u users.User
+	var u users.JoiningUser
 	if err := c.ShouldBindJSON(&u); err != nil {
 		e := errors.NewBadRequestError("invalid json data")
 		c.JSON(e.Code, e)
@@ -91,4 +101,19 @@ func Search(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, byStatus.Marshal(c.GetHeader("X-Public") == "true"))
+}
+
+func Login(c *gin.Context) {
+	var req users.LoginRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		rErr := errors.NewBadRequestError("invalid request")
+		c.JSON(rErr.Code, rErr)
+		return
+	}
+	u, err := services.UsersService.Login(req)
+	if err != nil {
+		c.JSON(err.Code, err)
+		return
+	}
+	c.JSON(http.StatusOK, u)
 }
